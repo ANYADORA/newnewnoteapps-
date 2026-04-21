@@ -1,0 +1,138 @@
+/* --- Design Tokens --- */
+:root {
+    --bg-primary: #0f0f18;
+    --bg-secondary: #16162a;
+    --bg-surface: rgba(255, 255, 255, 0.04);
+    --bg-surface-hover: rgba(255, 255, 255, 0.08);
+    --bg-glass: rgba(22, 22, 42, 0.85);
+    --accent: #6366f1;
+    --accent-glow: rgba(99, 102, 241, 0.3);
+    --success: #10b981;
+    --danger: #ef4444;
+    --info: #3b82f6;
+    --special: #a855f7;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: rgba(255, 255, 255, 0.08);
+    --shadow-lg: 0 12px 24px rgba(0,0,0,0.3);
+    --transition-fast: 0.15s ease;
+}
+
+/* --- Base --- */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin: 0;
+}
+
+/* --- Header & Page Input --- */
+#page-nav {
+    height: 60px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 16px; gap: 12px;
+}
+
+.page-indicator {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-primary);
+    padding: 4px 12px; border-radius: 8px; border: 1px solid var(--border);
+}
+
+#pageInput {
+    background: transparent; border: none; color: var(--accent);
+    width: 35px; text-align: center; font-size: 16px; font-weight: 700; outline: none;
+}
+
+#pageInput::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.nav-btn {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    color: var(--text-primary); width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+}
+
+.nav-spacer { flex: 1; }
+
+/* --- Status --- */
+.status-badge {
+    display: flex; align-items: center; gap: 8px; padding: 4px 12px;
+    background: var(--bg-surface); border-radius: 20px; font-size: 12px;
+}
+
+.status-dot { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; }
+.status-badge.saving .status-dot { background: #f59e0b; animation: pulse 1s infinite; }
+.status-badge.saved .status-dot { background: var(--success); }
+
+@keyframes pulse { 50% { opacity: 0.4; } }
+
+/* --- Toolbar --- */
+#toolbar {
+    height: 56px; background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 12px; gap: 8px; overflow-x: auto;
+}
+
+.tool-group { display: flex; align-items: center; gap: 4px; }
+
+.tool-btn {
+    background: transparent; border: none; color: var(--text-secondary);
+    min-width: 40px; height: 40px; border-radius: 8px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+
+.tool-btn:hover { background: var(--bg-surface); color: var(--text-primary); }
+.tool-btn.active { background: var(--accent-glow); color: var(--accent); }
+.tool-btn.danger:hover { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+.tool-btn.special { color: var(--special); }
+.tool-btn.special:hover { background: rgba(168, 85, 247, 0.1); }
+
+.tool-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+.tool-spacer { flex: 1; }
+
+/* --- Pen Settings --- */
+.pen-settings {
+    display: none; align-items: center; gap: 12px; background: var(--bg-primary);
+    padding: 0 12px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
+}
+
+#penColor { width: 24px; height: 24px; border: none; background: none; cursor: pointer; }
+#penSize { width: 80px; accent-color: var(--accent); }
+.pen-size-label { font-size: 11px; color: var(--text-muted); min-width: 30px; }
+
+/* --- Canvas --- */
+#canvas-container {
+    flex: 1; position: relative; background: #1a1a2e;
+    display: flex; justify-content: center; align-items: center; touch-action: none;
+}
+
+.canvas-container { box-shadow: var(--shadow-lg) !important; }
+
+/* --- Utils --- */
+#loading-overlay {
+    position: fixed; inset: 0; background: var(--bg-glass); z-index: 9999;
+    display: none; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+}
+.loader-spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--bg-secondary); padding: 8px 16px; border-radius: 8px;
+    border: 1px solid var(--border); transition: transform 0.3s; z-index: 10000;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+/* ... (前略: 既存のCSS) ... */
+
+#loading-overlay {
+    position: fixed; inset: 0; background: var(--bg-glass); z-index: 9999;
+    display: none; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+}
+.loader-spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ... (後略) ... */
