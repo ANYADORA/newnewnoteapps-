@@ -530,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('nextPage').onclick = () => {
         if (curP < pages.length - 1) switchPage(curP + 1);
         else { pages.push(null); switchPage(curP + 1); }
-    };
+    };};
 
     document.getElementById('imgBtn').onclick = () => document.getElementById('imgInput').click();
     document.getElementById('imgInput').onchange = (e) => {
