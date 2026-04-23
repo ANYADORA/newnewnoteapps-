@@ -216,11 +216,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         isMouseDown = true;
-        const common = { stroke: color, strokeWidth: sw, fill: 'transparent', selectable: false, evented: false };
+        const common = { stroke: color, strokeWidth: sw, fill: 'transparent', selectable: false, evented: false, strokeUniform: true };
         if (currentShape === 'line' || currentShape === 'arrow') activeObj = new fabric.Line([shapeStart.x, shapeStart.y, shapeStart.x, shapeStart.y], common);
         else if (currentShape === 'rect') activeObj = new fabric.Rect({ ...common, left: shapeStart.x, top: shapeStart.y, width: 0, height: 0 });
         else if (currentShape === 'circle') activeObj = new fabric.Ellipse({ ...common, left: shapeStart.x, top: shapeStart.y, rx: 0, ry: 0 });
-        else if (currentShape === 'star') activeObj = new fabric.Polygon(getStarPoints(5, 1, 2), { ...common, left: shapeStart.x, top: shapeStart.y });
+        else if (currentShape === 'star') activeObj = new fabric.Polygon(getStarPoints(5, 20, 50), { ...common, left: shapeStart.x, top: shapeStart.y });
         
         if (activeObj) canvas.add(activeObj);
     });
@@ -234,8 +234,13 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentShape === 'rect') activeObj.set({ left: Math.min(shapeStart.x, p.x), top: Math.min(shapeStart.y, p.y), width: w, height: h });
         else if (currentShape === 'circle') activeObj.set({ left: Math.min(shapeStart.x, p.x), top: Math.min(shapeStart.y, p.y), rx: w/2, ry: h/2 });
         else if (currentShape === 'star') {
-            const s = Math.max(w, h) / 10;
-            activeObj.set({ left: Math.min(shapeStart.x, p.x), top: Math.min(shapeStart.y, p.y), scaleX: s, scaleY: s });
+            const s = Math.max(w, h) / 100;
+            activeObj.set({ 
+                left: Math.min(shapeStart.x, p.x), 
+                top: Math.min(shapeStart.y, p.y), 
+                scaleX: s, 
+                scaleY: s 
+            });
         }
         canvas.renderAll();
     });
@@ -266,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const pts = [];
         for (let i = 0; i < 2 * n; i++) {
             const r = (i % 2 === 0) ? r2 : r1, a = (i * Math.PI) / n;
-            pts.push({ x: r * Math.sin(a), y: -r * Math.cos(a) });
+            pts.push({ x: r * Math.sin(a) + r2, y: -r * Math.cos(a) + r2 });
         }
         return pts;
     }
@@ -283,29 +288,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 8. AI Chat & Gemini Bridge ---
+    // --- 8. AI Assistant (Bridge Mode) ---
     const aiWindow = document.getElementById('ai-window');
-    const aiHistory = document.getElementById('ai-chat-history');
-    const aiBridgeContent = document.getElementById('ai-bridge-content');
-    const aiApiContent = document.getElementById('ai-api-content');
-    const aiInputArea = document.getElementById('ai-input-area');
     const bridgeStatus = document.getElementById('bridge-status');
 
-    let geminiKey = localStorage.getItem('gemini_api_key') || '';
-
-    function setAIMode(mode) {
-        document.getElementById('mode-bridge-btn').classList.toggle('active', mode === 'bridge');
-        document.getElementById('mode-api-btn').classList.toggle('active', mode === 'api');
-        aiBridgeContent.style.display = mode === 'bridge' ? 'flex' : 'none';
-        aiApiContent.style.display = mode === 'api' ? 'flex' : 'none';
-        aiInputArea.style.display = mode === 'api' ? 'flex' : 'none';
-    }
-
-    document.getElementById('mode-bridge-btn').onclick = () => setAIMode('bridge');
-    document.getElementById('mode-api-btn').onclick = () => setAIMode('api');
-
-    async function copyToGemini() {
-        showLoading('Gemini向けにデータを準備中...');
+    async function copyForAI() {
+        showLoading('データを準備中...');
         try {
             // 1. プロンプト生成 (テキスト抽出)
             let textContent = "";
@@ -318,7 +306,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const prompt = `以下のノートの内容について質問です。\n\n【ノートのテキスト内容】\n${textContent || "（テキストなし）"}\n\n【指示】\n添付した画像は現在のキャンバスの様子です。これをもとにアドバイスや解説をお願いします。`;
 
             // 2. 画像Blob取得
-            const blob = await new Promise(res => canvas.toCanvasElement().toBlob(res, 'image/png'));
+            canvas.renderAll();
+            const dataURL = canvas.toDataURL({ format: 'png', quality: 0.8 });
+            const res = await fetch(dataURL);
+            const blob = await res.blob();
             
             // 3. クリップボードへの書き込み (画像 + テキスト)
             const data = [new ClipboardItem({ 
@@ -330,90 +321,25 @@ document.addEventListener('DOMContentLoaded', () => {
             
             bridgeStatus.style.display = 'block';
             setTimeout(() => bridgeStatus.style.display = 'none', 5000);
-            toast('画像とプロンプトをクリップボードにコピーしました！');
+            toast('キャンバス内容をコピーしました！');
         } catch (e) {
             console.error(e);
-            toast('コピーに失敗しました。ブラウザの権限を確認してください。');
+            toast('コピーに失敗しました。');
         }
         hideLoading();
     }
 
-    document.getElementById('ai-bridge-copy-btn').onclick = copyToGemini;
+    document.getElementById('ai-bridge-copy-btn').onclick = copyForAI;
     document.getElementById('open-gemini-site').onclick = () => window.open('https://gemini.google.com/', '_blank');
+    document.getElementById('open-notebooklm-site').onclick = () => window.open('https://notebooklm.google.com/', '_blank');
 
-    // --- API Mode Logic ---
-    const aiInput = document.getElementById('ai-text-input');
-    const aiMessages = document.getElementById('ai-messages');
-    const keyModal = document.getElementById('key-modal');
-    const keyInput = document.getElementById('api-key-input');
-    
-    function addChatMsg(text, sender) {
-        const div = document.createElement('div');
-        div.className = `chat-msg ${sender}`;
-        div.textContent = text;
-        aiMessages.appendChild(div);
-        aiMessages.scrollTop = aiMessages.scrollHeight;
-    }
-
-    async function callGemini(prompt, imageData = null) {
-        if (!geminiKey) { keyModal.style.display = 'flex'; return; }
-        
-        const model = imageData ? 'gemini-1.5-flash' : 'gemini-pro';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
-        
-        const contents = [{ parts: [{ text: prompt }] }];
-        if (imageData) {
-            contents[0].parts.push({
-                inline_data: { mime_type: "image/png", data: imageData.split(',')[1] }
-            });
-        }
-
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents })
-            });
-            const data = await res.json();
-            return data.candidates[0].content.parts[0].text;
-        } catch (e) {
-            console.error(e);
-            return "エラーが発生しました。APIキーを確認してください。";
-        }
-    }
-
-    document.getElementById('ai-send-btn').onclick = async () => {
-        const text = aiInput.value.trim();
-        if (!text) return;
-        aiInput.value = '';
-        addChatMsg(text, 'user');
-        const reply = await callGemini(text);
-        if (reply) addChatMsg(reply, 'ai');
-    };
-
-    document.getElementById('ai-vision-btn').onclick = async () => {
-        addChatMsg("現在のキャンバスを分析しています...", 'user');
-        const dataURL = canvas.toDataURL({ format: 'png', quality: 0.8 });
-        const reply = await callGemini("この画像について説明して、アドバイスをください。", dataURL);
-        if (reply) addChatMsg(reply, 'ai');
-    };
-
-    // AI Window Control
     document.getElementById('ai-toggle-btn').onclick = () => {
         aiWindow.style.display = aiWindow.style.display === 'flex' ? 'none' : 'flex';
     };
     document.getElementById('ai-minimize-btn').onclick = () => aiWindow.classList.toggle('minimized');
     document.getElementById('ai-close-btn').onclick = () => aiWindow.style.display = 'none';
-    document.getElementById('ai-settings-btn').onclick = () => keyModal.style.display = 'flex';
-    document.getElementById('save-key-btn').onclick = () => {
-        geminiKey = keyInput.value.trim();
-        localStorage.setItem('gemini_api_key', geminiKey);
-        keyModal.style.display = 'none';
-        toast('APIキーを保存しました');
-    };
-    document.getElementById('close-modal-btn').onclick = () => keyModal.style.display = 'none';
 
-    // AI Window Dragging (Desktop & iPad)
+    // AI Window Dragging
     let isDragging = false;
     let dragOffset = { x: 0, y: 0 };
     const aiHeader = document.getElementById('ai-header');
@@ -476,10 +402,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const blob = await zip.generateAsync({ type: "blob" });
             const name = `Note_${Date.now()}.nota`;
             
+            let shared = false;
             if (navigator.share) {
-                const file = new File([blob], name, { type: "application/zip" });
-                await navigator.share({ files: [file], title: 'Nota Save' });
-            } else {
+                try {
+                    const file = new File([blob], name, { type: "application/zip" });
+                    await navigator.share({ files: [file], title: 'Nota Save' });
+                    shared = true;
+                } catch (e) { console.warn('Share failed, falling back to download', e); }
+            }
+            
+            if (!shared) {
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob); a.download = name; a.click();
             }
@@ -538,16 +470,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (data) canvas.loadFromJSON(data, () => { applyBackground(canvas); res(); });
                     else { canvas.clear(); applyBackground(canvas); res(); }
                 });
-                const blob = await new Promise(res => canvas.toCanvasElement().toBlob(res, 'image/png'));
+                const dataURL = canvas.toDataURL({ format: 'png', quality: 0.9 });
+                const blob = await (await fetch(dataURL)).blob();
                 zip.file(`page_${i+1}.png`, blob);
             }
             const content = await zip.generateAsync({ type: "blob" });
             const name = `Nota_Images_${Date.now()}.zip`;
             
+            let shared = false;
             if (navigator.share) {
-                const file = new File([content], name, { type: "application/zip" });
-                await navigator.share({ files: [file], title: 'Exported Images' });
-            } else {
+                try {
+                    const file = new File([content], name, { type: "application/zip" });
+                    await navigator.share({ files: [file], title: 'Exported Images' });
+                    shared = true;
+                } catch (e) { console.warn('Share failed, falling back to download', e); }
+            }
+            
+            if (!shared) {
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(content); a.download = name; a.click();
             }
