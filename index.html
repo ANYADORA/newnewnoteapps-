@@ -4,77 +4,153 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Nota — スマートノート</title>
+    <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Loading Overlay -->
     <div id="loading-overlay">
         <div class="loader-spinner"></div>
-        <div id="loading-text">全ページの画像を生成中...</div>
+        <div id="loading-text">処理中...</div>
     </div>
+
+    <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
 
+    <!-- AI Key Settings Modal -->
+    <div id="key-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Gemini API 設定</h2>
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">AIチャット機能を利用するにはGoogle AI Studioで取得したAPIキーが必要です。</p>
+            <input type="password" id="api-key-input" placeholder="AI Studio API Key を入力">
+            <button class="modal-btn" id="save-key-btn">保存する</button>
+            <button class="ai-ctrl-btn" id="close-modal-btn">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- Page Navigation Header -->
     <header id="page-nav">
-        <button class="nav-btn" id="prevPage"><i class="fas fa-chevron-left"></i></button>
+        <button class="nav-btn" id="prevPage" title="前のページ"><i class="fas fa-chevron-left"></i></button>
         <div class="page-indicator">
             <input type="number" id="pageInput" min="1" value="1">
             <span id="pageTotal">/ 1</span>
         </div>
-        <button class="nav-btn" id="nextPage"><i class="fas fa-chevron-right"></i></button>
+        <button class="nav-btn" id="nextPage" title="次のページ"><i class="fas fa-chevron-right"></i></button>
+        
         <div class="nav-spacer"></div>
+        
         <div id="status-badge" class="status-badge">
             <span class="status-dot"></span>
             <span id="status-text">Ready</span>
         </div>
     </header>
 
+    <!-- Toolbar -->
     <div id="toolbar">
         <div class="tool-group">
-            <button class="tool-btn" id="undoBtn"><i class="fas fa-rotate-left"></i></button>
-            <button class="tool-btn" id="redoBtn"><i class="fas fa-rotate-right"></i></button>
+            <button class="tool-btn" id="undoBtn" title="元に戻す"><i class="fas fa-rotate-left"></i></button>
+            <button class="tool-btn" id="redoBtn" title="やり直し"><i class="fas fa-rotate-right"></i></button>
         </div>
+        
         <div class="tool-sep"></div>
+        
         <div class="tool-group">
             <button class="tool-btn active" id="modeMove" title="移動・選択"><i class="fas fa-hand"></i></button>
             <button class="tool-btn" id="pen1Btn" title="ペン1"><i class="fas fa-pen"></i></button>
             <button class="tool-btn" id="pen2Btn" title="ペン2"><i class="fas fa-pen-fancy"></i></button>
             <button class="tool-btn" id="modeEraser" title="消しゴム"><i class="fas fa-eraser"></i></button>
         </div>
+
         <div id="pen-settings" class="pen-settings">
             <input type="color" id="penColor">
-            <input type="range" id="penSize" min="1" max="30">
+            <input type="range" id="penSize" min="1" max="50">
             <span id="penSizeLabel" class="pen-size-label">2px</span>
         </div>
+
         <div class="tool-sep"></div>
+
         <div class="tool-group">
-            <button class="tool-btn" id="shapeLine"><i class="fas fa-minus"></i></button>
-            <button class="tool-btn" id="shapeArrow"><i class="fas fa-arrow-right"></i></button>
-            <button class="tool-btn" id="shapeRect"><i class="far fa-square"></i></button>
-            <button class="tool-btn" id="shapeCircle"><i class="far fa-circle"></i></button>
-            <button class="tool-btn" id="shapeStar"><i class="far fa-star"></i></button>
-            <button class="tool-btn" id="shapeText"><i class="fas fa-font"></i></button>
+            <button class="tool-btn" id="shapeLine" title="直線"><i class="fas fa-minus"></i></button>
+            <button class="tool-btn" id="shapeArrow" title="矢印"><i class="fas fa-arrow-right"></i></button>
+            <button class="tool-btn" id="shapeRect" title="四角形"><i class="far fa-square"></i></button>
+            <button class="tool-btn" id="shapeCircle" title="円"><i class="far fa-circle"></i></button>
+            <button class="tool-btn" id="shapeStar" title="星形"><i class="far fa-star"></i></button>
+            <button class="tool-btn" id="shapeText" title="テキスト"><i class="fas fa-font"></i></button>
         </div>
+
         <div class="tool-sep"></div>
+
         <div class="tool-group">
-            <button class="tool-btn" id="imgBtn"><i class="fas fa-image"></i></button>
+            <button class="tool-btn" id="imgBtn" title="画像挿入"><i class="fas fa-image"></i></button>
             <input type="file" id="imgInput" accept="image/*" hidden>
             <button class="tool-btn danger" id="delSelected" title="選択削除"><i class="fas fa-trash-alt"></i></button>
         </div>
+
         <div class="tool-spacer"></div>
+
         <div class="tool-group">
-            <button class="tool-btn" id="exportAllImages" title="全ページ画像保存"><i class="fas fa-file-export"></i></button>
-            <button class="tool-btn accent" id="saveFile" title="ファイル保存"><i class="fas fa-download"></i></button>
+            <button class="tool-btn special" id="ai-toggle-btn" title="AIチャット"><i class="fas fa-robot"></i></button>
+            <button class="tool-btn" id="exportAllImages" title="全ページ画像出力"><i class="fas fa-images"></i></button>
+            <button class="tool-btn accent" id="saveFile" title="ファイル保存 (.nota)"><i class="fas fa-download"></i></button>
             <button class="tool-btn" id="loadBtn" title="ファイル読込"><i class="fas fa-folder-open"></i></button>
             <input type="file" id="loadFile" accept=".nota,.zip,.json" hidden>
-            <button class="tool-btn special" id="openNotebookLM" title="NotebookLM"><i class="fas fa-robot"></i></button>
         </div>
     </div>
 
+    <!-- Canvas Container -->
     <main id="canvas-container">
         <canvas id="c"></canvas>
     </main>
+
+    <!-- Floating AI Window -->
+    <div id="ai-window">
+        <div id="ai-header">
+            <h3>AIアシスタント (Gemini)</h3>
+            <div class="ai-controls">
+                <button class="ai-ctrl-btn" id="ai-settings-btn" title="設定"><i class="fas fa-cog"></i></button>
+                <button class="ai-ctrl-btn" id="ai-minimize-btn" title="最小化"><i class="fas fa-minus"></i></button>
+                <button class="ai-ctrl-btn" id="ai-close-btn" title="閉じる"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div id="ai-chat-history">
+            <!-- 連携モードの切り替え -->
+            <div id="ai-mode-selector" style="display:flex; gap:8px; padding:10px; border-bottom:1px solid var(--border);">
+                <button class="ai-ctrl-btn active" id="mode-bridge-btn">外部連携</button>
+                <button class="ai-ctrl-btn" id="mode-api-btn">API連携</button>
+            </div>
+            
+            <!-- Bridge Mode UI -->
+            <div id="ai-bridge-content" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
+                <p style="font-size:12px; color:var(--text-secondary);">ノートの状況（画像と内容の要約）をクリップボードにコピーして、外部のGeminiサイトに持ち込めます。</p>
+                <button class="modal-btn" id="ai-bridge-copy-btn">
+                    <i class="fas fa-copy"></i> Geminiに送る準備をする
+                </button>
+                <div id="bridge-status" style="font-size:11px; text-align:center; color:var(--success); display:none;">
+                    コピー完了！Geminiで貼り付けてください
+                </div>
+                <button class="tool-btn special" id="open-gemini-site" style="width:100%;">
+                    <i class="fab fa-google"></i> Geminiサイトを開く
+                </button>
+            </div>
+
+            <!-- API Mode UI (Initially hidden) -->
+            <div id="ai-api-content" style="display:none; flex:1; flex-direction:column;">
+                <div id="ai-messages" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px;">
+                    <div class="chat-msg ai">API連携モードです。設定からAPIキーを入力してください。</div>
+                </div>
+            </div>
+        </div>
+        <div id="ai-input-area" style="display:none;">
+            <div class="ai-input-row">
+                <input type="text" id="ai-text-input" placeholder="AIに質問する...">
+                <button id="ai-vision-btn" title="現在のキャンバスをAIに送る"><i class="fas fa-camera"></i></button>
+                <button id="ai-send-btn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
