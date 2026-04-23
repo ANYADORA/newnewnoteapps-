@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Nota — スマートノート</title>
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="loader-spinner"></div>
+        <div id="loading-text">処理中...</div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Page Navigation Header -->
+    <header id="page-nav">
+        <button class="nav-btn" id="prevPage" title="前のページ"><i class="fas fa-chevron-left"></i></button>
+        <div class="page-indicator">
+            <input type="number" id="pageInput" min="1" value="1">
+            <span id="pageTotal">/ 1</span>
+        </div>
+        <button class="nav-btn" id="nextPage" title="次のページ"><i class="fas fa-chevron-right"></i></button>
+        
+        <div class="nav-spacer"></div>
+        
+        <div id="status-badge" class="status-badge">
+            <span class="status-dot"></span>
+            <span id="status-text">Ready</span>
+        </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+        <div class="tool-group">
+            <button class="tool-btn" id="undoBtn" title="元に戻す"><i class="fas fa-rotate-left"></i></button>
+            <button class="tool-btn" id="redoBtn" title="やり直し"><i class="fas fa-rotate-right"></i></button>
+        </div>
+        
+        <div class="tool-sep"></div>
+        
+        <div class="tool-group">
+            <button class="tool-btn active" id="modeMove" title="移動・選択"><i class="fas fa-hand"></i></button>
+            <button class="tool-btn" id="pen1Btn" title="ペン1"><i class="fas fa-pen"></i></button>
+            <button class="tool-btn" id="pen2Btn" title="ペン2"><i class="fas fa-pen-fancy"></i></button>
+            <button class="tool-btn" id="modeEraser" title="消しゴム"><i class="fas fa-eraser"></i></button>
+        </div>
+
+        <div id="pen-settings" class="pen-settings">
+            <input type="color" id="penColor">
+            <input type="range" id="penSize" min="1" max="50">
+            <span id="penSizeLabel" class="pen-size-label">2px</span>
+        </div>
+
+        <div class="tool-sep"></div>
+
+        <div class="tool-group">
+            <button class="tool-btn" id="shapeLine" title="直線"><i class="fas fa-minus"></i></button>
+            <button class="tool-btn" id="shapeArrow" title="矢印"><i class="fas fa-arrow-right"></i></button>
+            <button class="tool-btn" id="shapeRect" title="四角形"><i class="far fa-square"></i></button>
+            <button class="tool-btn" id="shapeCircle" title="円"><i class="far fa-circle"></i></button>
+            <button class="tool-btn" id="shapeStar" title="星形"><i class="far fa-star"></i></button>
+            <button class="tool-btn" id="shapeText" title="テキスト"><i class="fas fa-font"></i></button>
+        </div>
+
+        <div class="tool-sep"></div>
+
+        <div class="tool-group">
+            <button class="tool-btn" id="imgBtn" title="画像挿入"><i class="fas fa-image"></i></button>
+            <input type="file" id="imgInput" accept="image/*" hidden>
+            <button class="tool-btn danger" id="delSelected" title="選択削除"><i class="fas fa-trash-alt"></i></button>
+        </div>
+
+        <div class="tool-spacer"></div>
+
+        <div class="tool-group">
+            <button class="tool-btn special" id="ai-toggle-btn" title="AI連携"><i class="fas fa-robot"></i></button>
+            <button class="tool-btn" id="exportAllImages" title="全ページ画像出力"><i class="fas fa-images"></i></button>
+            <button class="tool-btn accent" id="saveFile" title="ファイル保存 (.nota)"><i class="fas fa-download"></i></button>
+            <button class="tool-btn" id="loadBtn" title="ファイル読込"><i class="fas fa-folder-open"></i></button>
+            <input type="file" id="loadFile" accept=".nota,.zip,.json" hidden>
+        </div>
+    </div>
+
+    <!-- Canvas Container -->
+    <main id="canvas-container">
+        <canvas id="c"></canvas>
+    </main>
+
+    <!-- Floating AI Window -->
+    <div id="ai-window">
+        <div id="ai-header">
+            <h3>AIアシスタント (外部連携)</h3>
+            <div class="ai-controls">
+                <button class="ai-ctrl-btn" id="ai-minimize-btn" title="最小化"><i class="fas fa-minus"></i></button>
+                <button class="ai-ctrl-btn" id="ai-close-btn" title="閉じる"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div id="ai-chat-history">
+            <div id="ai-bridge-content" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
+                <p style="font-size:12px; color:var(--text-secondary);">現在のキャンバス内容をクリップボードにコピーして、Gemini等で活用できます。</p>
+                <button class="modal-btn" id="ai-bridge-copy-btn">
+                    <i class="fas fa-copy"></i> キャンバス内容をコピー
+                </button>
+                <div id="bridge-status" style="font-size:11px; text-align:center; color:var(--success); display:none;">
+                    コピー完了！各サイトで貼り付けてください
+                </div>
+                
+                <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+                    <button class="tool-btn special" id="open-gemini-site" style="width:100%; border:1px solid var(--border);">
+                        <i class="fab fa-google"></i> Geminiサイトを開く
+                    </button>
+                    <button class="tool-btn accent" id="open-notebooklm-site" style="width:100%; border:1px solid var(--border);">
+                        <i class="fas fa-book"></i> NotebookLMを開く
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
